@@ -1,0 +1,15 @@
+{
+  "name": "password_manager",
+  "version": "0.1.0",
+  "description": "",
+  "main": "source.js",
+  "scripts": {
+    "start": "node source.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "webpack": "^5.74.0"
+  }
+}
