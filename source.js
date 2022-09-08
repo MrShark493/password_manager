@@ -1,15 +1,16 @@
 const http = require('http');
 const fs = require('fs');
 const PORT = 3000;
+const databaseFile = 'testDataBase.json';
 
 //описываем взаимодействие с базой данных
 //пока просто json. В перспективе можно и MySQL реализовать
 
-const readJSON = (filePath, format = "utf-8") => {
+const readJSON = (filePath = databaseFile, format = "utf-8") => {
     return JSON.parse(fs.readFileSync(filePath, format));
 }
 
-const rewriteJSON = (database, fileName = 'testDatabase.json') => {
+const rewriteJSON = (database, fileName = databaseFile) => {
     fs.writeFileSync(fileName, JSON.stringify(database), (err) => {
         if (err) throw err;
         console.log('Data written to file ' + fileName);
@@ -31,21 +32,13 @@ const reindex = (database) => {
             database["Services"][property][i]["id"] = count++;
         }
     }
-}
-
-const addNewService = (database, serviceName) => {
-    console.log(`
-    ---------------------------------
-    Добавление нового сервиса
-    Service Name: ${serviceName}
-    ---------------------------------
-    `);
-    database['Services'][serviceName] = [];
+    rewriteJSON(database);
 }
 
 //добавить акк в БД
-const addValue = (database, serviceName, accInfo) => {
-    database["Services"][serviceName].push(accInfo);
+const addValue = (database, serviceName, login, password) => {
+    //{"id": -1, "login": <string>, "password": <string>}
+    database["Services"][serviceName].push({"id": -1, "login": login, "password": password});
     reindex(database);
 }
 
@@ -61,11 +54,30 @@ const deleteValue = (database, id) => {
     reindex(database);
 }
 
+const addNewService = (database, serviceName) => {
+    console.log(`
+    ---------------------------------
+    Добавление нового сервиса
+    Service Name: ${serviceName}
+    ---------------------------------
+    `);
+    database['Services'][serviceName] = [];
+    rewriteJSON(database);
+}
+
+const deleteService = (database, serviceName) => {
+    delete database['Services'][serviceName];
+    reindex(database);
+}
+
 
 
 
 //блок кода отвечающий за тестирование функций
 (function(){
+    const database = readJSON();
+    //Пробный вывод БД
+    loginList(database);
 }())
 
 
@@ -101,21 +113,24 @@ http.createServer((request,response) => {
             request.on('end', () => {
                 console.log(serviceName);
                 response.end('Новый сервис добавлен');
-                const database = readJSON('testDatabase.json');
+                const database = readJSON(databaseFile);
                 addNewService(database, serviceName);
-                //rewriteJSON(database);
             });
             break;
 
         case '/newPass':
             console.log('Добавление нового логина и пароля');
-            const buffers = [];
-            for await(const chunk of request) {
-                buffers.push(chunk);
-            }
-            const data = JSON.parse(Buffer.concat(buffers).toString());
-            console.log(`Логин: ${data.login} Пароль: ${data.pass}`);
-            response.end("Данные успешно получены");
+            let stringData = '';
+            request.on('data', chunk => {
+                stringData += chunk;
+            });
+            request.on('end', () => {
+                console.log('Received data: ' + stringData);
+                response.end('Новый логин и пароль получен');
+                const database = readJSON(databaseFile);
+                const wordArray = stringData.split(' ');
+                addValue(database, wordArray[0], wordArray[1], wordArray[2]);
+            });
             break;
         default:
             fs.readFile(request.url.slice(1), (error, data) => {              

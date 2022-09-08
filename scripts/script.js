@@ -80,21 +80,33 @@ async function sendNewService(){
     const responseText = response.text();
     console.log(responseText);
     popUpWindowShow(false);
+    sectionUpdate("serviceSection");
 }
 
 async function sendNewPass() {
     console.log('Отправка нового запроса');
-    let response = await fetch('/newPass', 
-        {method: 'POST',
-        headers: {"Content-Type": "application/json"}, 
-        body: 
-            JSON.stringify({
-                login: document.getElementById('popUpLogin').value,
-                pass: document.getElementById('popUpPass').value
-            })});
+    const stringLogin = document.getElementById('popUpLogin').value;
+    const stringPassword = document.getElementById('popUpPass').value;
+    let response = await fetch('/newPass', {method: 'POST', body: lastChosenService + " " + stringLogin + " " + stringPassword});
     const responseText = response.text();
     console.log(responseText);
     popUpWindowShow(false);
+    sectionUpdate('loginSection');
+}
+
+const sectionUpdate = (sectionName) => {
+    let section = document.getElementById(sectionName);
+    sectionClear(section);
+    switch (sectionName) {
+        case 'loginSection':
+            getLogins(lastChosenService);
+            console.log('Секция обновлена');
+            break;
+        case 'serviceSection':
+            serviceSectionSummon('Название', serviceSection, serviceList, loginSectionSummon);
+            console.log('Секция обновлена');
+            break;
+    }
 }
 
 //вызов секции
@@ -105,7 +117,10 @@ async function serviceSectionSummon(sectionName, elem, elemArray, buttonFunction
     }
     else {
         for (let i = 0; i < elemArray.length; i += 1) {
-            addTagElement('button', elem, {'textContent': elemArray[i], 'id': elemArray[i]},{},{'click': buttonFunction});
+            addTagElement('button', elem, {'textContent': elemArray[i], 'id': elemArray[i]},{},{'click': (event) => {
+                buttonFunction(event);
+                lastChosenService = elemArray[i];
+            }});
         }
     }
     addTagElement('button', elem, {'textContent': 'Добавить','id': 'buttonAdd'},{},{'click': () => popUpWindowShow(true, 'service')});
@@ -129,6 +144,7 @@ async function launch() {
 const loginSectionSummon = (event) => {
     sectionClear(loginSection);
     getLogins(event.target.id);
+    lastChosenService = event.target.id;
 }
 
 async function getLogins(serviceName) {
@@ -177,6 +193,7 @@ const loginFormConstructor = (id, login, password) => {
 //начало исполнения кода
 const fileURL = 'testDataBase';
 let serviceList = [];
+let lastChosenService;
 const serviceSection = document.getElementById('serviceSection');
 const loginSection = document.getElementById('loginSection');
 
