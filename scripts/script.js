@@ -72,6 +72,40 @@ const popUpWindowShow = (status, type = '') => {
     }    
 }
 
+const contextMenu = (elementID, type, coordX = '500px', coordY = '500px') => {
+    if (document.getElementById("contextMenu") != null) {
+        let globalContainer = document.getElementById("globalContainer");
+        console.log('попытка удалить');
+        globalContainer.removeChild(document.getElementById("contextMenu"));
+    }
+    let contextMenuContainer = addTagElement('div', document.getElementById('globalContainer'), {"id": "contextMenu"}, {'position': 'absolute','top': coordY+"px", 'left': coordX+"px", 'z-index': '99999'});
+    addTagElement('button', contextMenuContainer, {'textContent': 'Удалить'}, {}, 
+    {
+        'click': () => {
+            switch (type){
+                case 'service':
+                    console.log(`
+                    Удаление сервиса
+                    Название: ${elementID}
+                    `);
+                    deleteService(elementID);
+                    break;
+                case 'login':
+                    console.log(`
+                    Удаление логина и пароля
+                    ID: ${elementID.slice(-1)}
+                    `);
+                    deletePass(elementID.slice(-1));
+                    break;
+            }
+        }
+    });
+}
+
+const getParentId = (elementID) => {
+    return document.getElementById(elementID).parentNode.id 
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //АСИНХРОННЫЕ ФУНКЦИИ
 async function sendNewService(){
@@ -87,10 +121,26 @@ async function sendNewPass() {
     console.log('Отправка нового запроса');
     const stringLogin = document.getElementById('popUpLogin').value;
     const stringPassword = document.getElementById('popUpPass').value;
-    let response = await fetch('/newPass', {method: 'POST', body: lastChosenService + " " + stringLogin + " " + stringPassword});
-    const responseText = response.text();
-    console.log(responseText);
+    let response = await fetch('/newPass', 
+    {method: 'POST', body: lastChosenService + " " + stringLogin + " " + stringPassword});
+    console.log(response.text());
     popUpWindowShow(false);
+    sectionUpdate('loginSection');
+}
+
+async function deleteService(serviceName) {
+    console.log("Отправляем запрос на удаление ветки");    
+    let response = await fetch('/deleteService', 
+    {method: 'POST', body: serviceName});
+    console.log(response.text());
+    sectionUpdate("serviceSection");
+}
+
+async function deletePass(loginID) {
+    console.log("Отправляем запрос на удаление логина и пароля");
+    let response = await fetch('/deleteValue', 
+    {method: 'POST', body: loginID});
+    console.log(await response.text());
     sectionUpdate('loginSection');
 }
 
@@ -103,41 +153,56 @@ const sectionUpdate = (sectionName) => {
             console.log('Секция обновлена');
             break;
         case 'serviceSection':
-            serviceSectionSummon('Название', serviceSection, serviceList, loginSectionSummon);
+            relaunch();
             console.log('Секция обновлена');
             break;
     }
 }
 
 //вызов секции
-async function serviceSectionSummon(sectionName, elem, elemArray, buttonFunction){
+const serviceSectionSummon = (sectionName, elem, elemArray, buttonFunction) => {
     addTagElement('h3', elem, {'textContent': sectionName});
     if (elemArray.length === 0) {
         addTagElement('h4', elem, {'textContent': 'Пусто'}, {'textAlign': 'center'});
     }
     else {
         for (let i = 0; i < elemArray.length; i += 1) {
-            addTagElement('button', elem, {'textContent': elemArray[i], 'id': elemArray[i]},{},{'click': (event) => {
+            addTagElement('button', elem, {'textContent': elemArray[i], 'id': elemArray[i]},{},
+            {'click': (event) => {
+                event.preventDefault();
                 buttonFunction(event);
                 lastChosenService = elemArray[i];
-            }});
+            },
+            "contextmenu": (event) => {
+                console.log('вызвано контекстное меню');
+                console.log(event.target.id);
+                event.preventDefault();
+                event.stopPropagation();
+                contextMenu(event.target.id, 'service', event.clientX, event.clientY);
+            }
+        }
+        );
         }
     }
-    addTagElement('button', elem, {'textContent': 'Добавить','id': 'buttonAdd'},{},{'click': () => popUpWindowShow(true, 'service')});
+    addTagElement('button', elem, {'textContent': 'Добавить','id': 'buttonAdd'},{},{'click': (event) => {event.preventDefault(); popUpWindowShow(true, 'service');}});
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-async function launch() {
-    const url = fileURL + ".json";
-    let response = await fetch(url);
+async function relaunch() {
+    let dbNamePromise = await fetch('/getDBName');
+    fileURL = await dbNamePromise.text();
+    serviceSectionSummon('Название', serviceSection, await getServices(fileURL), loginSectionSummon);
+}
+
+async function getServices(fileURL) {
+    let response = await fetch(fileURL);
     const serverData = await response.json();
     const database = serverData['Services'];
-
+    let serviceList = [];
     for (let prop in database){
         serviceList.push(prop);
     }
-
-    serviceSectionSummon('Название', serviceSection, serviceList, loginSectionSummon);
+    return serviceList;
 }
 
 //функция вызова секции логинов
@@ -148,8 +213,7 @@ const loginSectionSummon = (event) => {
 }
 
 async function getLogins(serviceName) {
-    const url = fileURL + ".json";
-    let response = await fetch(url, {method: 'POST'});
+    let response = await fetch(fileURL, {method: 'POST'});
     const data = await response.json();
     const database = data['Services'];    
     const loginList = database[serviceName];
@@ -165,16 +229,20 @@ async function getLogins(serviceName) {
     }
 
     let addButtonField = addTagElement('fieldset', addTagElement('form', loginSection));
-    addTagElement('button', addButtonField, {'textContent': 'Добавить'}, {}, {'click': (event) => {
-        //без этой строки браузер пытается отправить запрос на сервак. В итоге имеем ошибку
-        event.preventDefault();
-        popUpWindowShow(true, 'pass');
-    }} );
+    addTagElement('button', addButtonField, {'textContent': 'Добавить'}, {},
+     {
+        'click': (event) => {
+            //без этой строки браузер пытается отправить запрос на сервак. В итоге имеем ошибку
+            event.preventDefault();
+            popUpWindowShow(true, 'pass');
+            console.log(event.keyCode);
+        }
+} );
 }
 
 //конструктор формы, где будут выведены логин и пароль
 const loginFormConstructor = (id, login, password) => {
-    let form = addTagElement('form', loginSection, {'id': `form${id}`}, {});
+    let form = addTagElement('form', loginSection, {'id': `form${id}`});
     let fieldset = addTagElement('fieldset', form);
 
     addTagElement('label', fieldset, {'textContent': `Логин: ${login}`});
@@ -187,15 +255,43 @@ const loginFormConstructor = (id, login, password) => {
         navigator.clipboard.writeText(password);
     });
 
+    form.addEventListener("contextmenu", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log(`
+        Target: ${e.currentTarget.id}
+        CoordX ${e.clientX}
+        CoordY ${e.clientY}
+        `);
+        contextMenu(e.currentTarget.id, 'login', e.clientX, e.clientY);
+    }, true);
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //начало исполнения кода
-const fileURL = 'testDataBase';
-let serviceList = [];
+let fileURL;
 let lastChosenService;
 const serviceSection = document.getElementById('serviceSection');
 const loginSection = document.getElementById('loginSection');
+document.addEventListener("contextmenu", 
+event => 
+{
+    event.preventDefault(); 
+    console.log(event.target);
+    if (document.getElementById("contextMenu") != null) {
+        let globalContainer = document.getElementById("globalContainer");
+        console.log('попытка удалить');
+        globalContainer.removeChild(document.getElementById("contextMenu"));
+    }
+});
+document.addEventListener('click', event => {
+    if (document.getElementById("contextMenu") != null) {
+        let globalContainer = document.getElementById("globalContainer");
+        console.log('попытка удалить');
+        globalContainer.removeChild(document.getElementById("contextMenu"));
+    }
+});
 
 popUpWindowShow(false);
-launch(fileURL);
+relaunch(fileURL);

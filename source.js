@@ -66,6 +66,12 @@ const addNewService = (database, serviceName) => {
 }
 
 const deleteService = (database, serviceName) => {
+    console.log(`
+    -----------------------------
+    Удаление сервиса
+    Service Name: ${serviceName}
+    -----------------------------
+    `);
     delete database['Services'][serviceName];
     reindex(database);
 }
@@ -86,11 +92,15 @@ const deleteService = (database, serviceName) => {
 
 //инициализация сервера, обработка запросов
 http.createServer((request,response) => {
+
     console.log(`
     --------------------------------------
     Получен запрос: ${request.url}
     Поиск по пути: ${request.url.slice(1)}
     `);
+
+    let incomeData = "";
+    const database = readJSON(databaseFile);
     switch (request.url) {
         case '/':
             fs.readFile('index.html', (error, data) => {              
@@ -104,34 +114,57 @@ http.createServer((request,response) => {
                 }
             });
             break;
+        
+        case '/getDBName':
+            console.log(`Запрос названия файла БД`);
+            response.end(databaseFile);
+            console.log(databaseFile);
+            break;
 
         case '/newService':
-            let serviceName = '';
             request.on('data', chunk => {
-                serviceName += chunk;
+                incomeData += chunk;
             });
             request.on('end', () => {
-                console.log(serviceName);
+                console.log(incomeData);
                 response.end('Новый сервис добавлен');
-                const database = readJSON(databaseFile);
-                addNewService(database, serviceName);
+                addNewService(database, incomeData);
             });
             break;
 
         case '/newPass':
             console.log('Добавление нового логина и пароля');
-            let stringData = '';
             request.on('data', chunk => {
-                stringData += chunk;
+                incomeData += chunk;
             });
             request.on('end', () => {
-                console.log('Received data: ' + stringData);
+                console.log('Received data: ' + incomeData);
                 response.end('Новый логин и пароль получен');
-                const database = readJSON(databaseFile);
-                const wordArray = stringData.split(' ');
+                const wordArray = incomeData.split(' ');
                 addValue(database, wordArray[0], wordArray[1], wordArray[2]);
             });
             break;
+
+        case '/deleteService':
+            console.log("Удаление ветки сервиса...");
+            request.on('data', chunk => incomeData += chunk);
+            request.on('end', () => {
+                console.log(incomeData);
+                deleteService(database, incomeData);
+                response.end("Ответ получен. Удаление сервиса");
+            });
+            break;
+
+        case '/deleteValue':
+            console.log("Удаление логина и пароля из БД");
+            request.on('data', chunk => incomeData += chunk);
+            request.on('end', () => {
+                console.log(incomeData);
+                deleteValue(database, Number(incomeData));
+                response.end("Ответ получен. Удаление логина и пароля");
+            });            
+            break;
+
         default:
             fs.readFile(request.url.slice(1), (error, data) => {              
                 if(error){
