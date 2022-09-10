@@ -1,13 +1,21 @@
 const http = require('http');
 const fs = require('fs');
 const PORT = 3000;
-const databaseFile = 'testDataBase.json';
+const databaseFile = 'DataBase.json';
 
 //описываем взаимодействие с базой данных
 //пока просто json. В перспективе можно и MySQL реализовать
 
 const readJSON = (filePath = databaseFile, format = "utf-8") => {
-    return JSON.parse(fs.readFileSync(filePath, format));
+    try {
+        return JSON.parse(fs.readFileSync(filePath, format));
+    }
+    catch {
+        console.log("Словили ошибку при запуске. Отсутствует файл-хранилище.");
+        fs.writeFileSync('DataBase.json', JSON.stringify({"Services": {}}));
+        console.log("Создан новый файл-хранилище");
+        return JSON.parse(fs.readFileSync(filePath, format));
+    }
 }
 
 const rewriteJSON = (database, fileName = databaseFile) => {
