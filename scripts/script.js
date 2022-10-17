@@ -18,24 +18,24 @@ const addTagElement = (stringTagName, objectParentElement = body, objectAttribut
     //просматриваем переданный объект с аттрибутами
     for (let attribute in objectAttributes) {
         tag[attribute] = objectAttributes[attribute];
-    }
+    };
 
     //добавляем перечисляемые стили
     let stringStyles = '';
     for (let style in objectStyles) {
         stringStyles += style + ": " + objectStyles[style] + '; ';
         tag.setAttribute('style', stringStyles);
-    }
+    };
 
     //добавляем обработчики событий
     for (let event in objectEvents) {
         tag.addEventListener(event, objectEvents[event]);
-    }
+    };
 
     //если есть необходимость - добавляем родиетльский элемент
     if (objectParentElement != null) {
         objectParentElement.appendChild(tag);
-    }    
+    };    
 
     //если понадобится этот тег в виде объекта в дальнейшем - функцция возвращет его.
     return tag;
@@ -104,7 +104,7 @@ const contextMenu = (elementID, type, coordX = '500px', coordY = '500px') => {
 
 const getParentId = (elementID) => {
     return document.getElementById(elementID).parentNode.id 
-}
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //АСИНХРОННЫЕ ФУНКЦИИ
@@ -115,18 +115,21 @@ async function sendNewService(){
     console.log(responseText);
     popUpWindowShow(false);
     sectionUpdate("serviceSection");
-}
+};
 
 async function sendNewPass() {
     console.log('Отправка нового запроса');
     const stringLogin = document.getElementById('popUpLogin').value;
     const stringPassword = document.getElementById('popUpPass').value;
     let response = await fetch('/newPass', 
-    {method: 'POST', body: lastChosenService + " " + stringLogin + " " + stringPassword});
+    {
+        method: 'POST', 
+        body: lastChosenService + " " + stringLogin + " " + stringPassword
+    });
     console.log(response.text());
     popUpWindowShow(false);
     sectionUpdate('loginSection');
-}
+};
 
 async function deleteService(serviceName) {
     console.log("Отправляем запрос на удаление ветки");    
@@ -134,7 +137,7 @@ async function deleteService(serviceName) {
     {method: 'POST', body: serviceName});
     console.log(response.text());
     sectionUpdate("serviceSection");
-}
+};
 
 async function deletePass(loginID) {
     console.log("Отправляем запрос на удаление логина и пароля");
@@ -142,7 +145,7 @@ async function deletePass(loginID) {
     {method: 'POST', body: loginID});
     console.log(await response.text());
     sectionUpdate('loginSection');
-}
+};
 
 const sectionUpdate = (sectionName) => {
     let section = document.getElementById(sectionName);
@@ -156,8 +159,8 @@ const sectionUpdate = (sectionName) => {
             relaunch();
             console.log('Секция обновлена');
             break;
-    }
-}
+    };
+};
 
 //вызов секции
 const serviceSectionSummon = (sectionName, elem, elemArray, buttonFunction) => {
@@ -182,8 +185,8 @@ const serviceSectionSummon = (sectionName, elem, elemArray, buttonFunction) => {
             }
         }
         );
-        }
-    }
+        };
+    };
     addTagElement('button', elem, {'textContent': 'Добавить','id': 'buttonAdd'},{},{'click': (event) => {event.preventDefault(); popUpWindowShow(true, 'service');}});
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -226,10 +229,9 @@ async function getLogins(serviceName) {
     }
     else {
         addTagElement('h3', loginSection, {'textContent': "Пусто"});
-    }
+    };
 
-    let addButtonField = addTagElement('fieldset', addTagElement('form', loginSection));
-    addTagElement('button', addButtonField, {'textContent': 'Добавить'}, {},
+    addTagElement('button', loginSection, {'textContent': 'Добавить'}, {},
      {
         'click': (event) => {
             //без этой строки браузер пытается отправить запрос на сервак. В итоге имеем ошибку
@@ -243,17 +245,15 @@ async function getLogins(serviceName) {
 //конструктор формы, где будут выведены логин и пароль
 const loginFormConstructor = (id, login, password) => {
     let form = addTagElement('form', loginSection, {'id': `form${id}`});
-    let fieldset = addTagElement('fieldset', form);
 
-    addTagElement('label', fieldset, {'textContent': `Логин: ${login}`});
-    addTagElement('label', fieldset, {'textContent': `ID: ${id}`});
-    addTagElement('label', fieldset, {'textContent': `Пароль: ${password}`, 'name': 'password'});
-    addTagElement('input', fieldset, {'type': 'submit', 'value': 'Копировать'});
-
-    form.addEventListener('submit', (e) => {
-        e.preventDefault(); //благодаря этой штуке браузер даже не пытается перейти по ссылке в этой кнопке
-        navigator.clipboard.writeText(password);
-    });
+    addTagElement('label', form, {'textContent': `Логин: ${login}`});
+    addTagElement('label', form, {'textContent': `ID: ${id}`});
+    addTagElement('label', form, {'textContent': `Пароль: ${password}`, 'name': 'password'});
+    addTagElement('button', form, {'textContent': 'Копировать'}, {}, 
+        {"click": (e)=>{
+            e.preventDefault(); //благодаря этой штуке браузер даже не пытается перейти по ссылке в этой кнопке
+            navigator.clipboard.writeText(password);
+    }});
 
     form.addEventListener("contextmenu", (e) => {
         e.stopPropagation();
@@ -266,7 +266,7 @@ const loginFormConstructor = (id, login, password) => {
         contextMenu(e.currentTarget.id, 'login', e.clientX, e.clientY);
     }, true);
 
-}
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //начало исполнения кода
