@@ -1,7 +1,7 @@
 {
   "name": "password_manager",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.9.0",
+  "description": "Browser Password Manager",
   "main": "source.js",
   "scripts": {
     "start": "node source.js"

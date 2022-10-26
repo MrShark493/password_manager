@@ -1,6 +1,6 @@
 const http = require('http');
 const fs = require('fs');
-const PORT = 5000;
+const PORT = 3000;
 const databaseFile = 'DataBase.json';
 
 //описываем взаимодействие с базой данных
