@@ -60,8 +60,40 @@ const popUpWindowShow = (status, type = '') => {
             case 'pass':
                 addTagElement('label', popupContent, {'textContent': 'Введите логин'});
                 addTagElement('input', popupContent, {'type': 'text', 'id': 'popUpLogin'});
+                let randomPassContainer = addTagElement('div', popupContent);
+                    addTagElement('input', randomPassContainer, {'type': 'checkbox', 'id': 'randomPassword'}, {}, {'change': (event) => {
+                        console.log(event.currentTarget.checked); // <-- далее это стереть
+                        
+                        if (event.currentTarget.checked) {
+                            popupContent.children[3].style = 'display: none;'; //обращение к <label>Введите пароль</label>
+                            popupContent.children[4].style = 'display: none;'; // обращение к <input>
+                            //разблокировываем form с конфигурацией пароля
+                            popupContent.children[5].style = '';
+                        }
+                        else {
+                            popupContent.children[3].style = ''; //обращение к <label>Введите пароль</label>
+                            popupContent.children[4].style = ''; // обращение к <input>
+                            popupContent.children[5].style = 'display: none;';
+                        }
+                    }});
+                    addTagElement('label', randomPassContainer, {'for': 'randomPassword', 'textContent': 'Случайный пароль'});
+
                 addTagElement('label', popupContent, {'textContent': 'Введите пароль'});
                 addTagElement('input', popupContent, {'type': 'text', 'id': 'popUpPass'});
+
+                let passwordConfig = addTagElement('form', popupContent, {}, {'display': 'none'});
+                    addTagElement('input', passwordConfig, {'type': 'checkbox', 'id': 'upperCase', 'value': 'upperCase'});
+                    addTagElement('label', passwordConfig, {'for': 'upperCase', 'textContent': 'Верхний регистр'});
+                    addTagElement('br', passwordConfig);
+                    addTagElement('input', passwordConfig, {'type': 'checkbox', 'id': 'numbers', 'value': 'numbers'});
+                    addTagElement('label', passwordConfig, {'for': 'numbers', 'textContent': 'Числа'});
+                    addTagElement('br', passwordConfig);
+                    addTagElement('input', passwordConfig, {'type': 'checkbox', 'id': 'specSymbols', 'value': 'specSymbols'});
+                    addTagElement('label', passwordConfig, {'for': 'specSymbols', 'textContent': 'Специальные символы'});
+                    addTagElement('br', passwordConfig);
+                    addTagElement('input', passwordConfig, {'type': 'number', 'id': 'passwordLength', 'min': '3', 'max': '128', 'value': '12'});
+                    addTagElement('label', passwordConfig, {'for': 'passwordLength', 'textContent': 'Длина пароля'});
+
                 addTagElement('button', popupContent, {'textContent': 'Продолжить', 'id': 'popUpButton'}, {}, {'click': () => sendNewPass()});
                 addTagElement('button', popupContent, {'textContent': 'Отмена'}, {}, {'click': () => popUpWindowShow(false)});
                 break;
@@ -120,7 +152,28 @@ async function sendNewService(){
 async function sendNewPass() {
     console.log('Отправка нового запроса');
     const stringLogin = document.getElementById('popUpLogin').value;
-    const stringPassword = document.getElementById('popUpPass').value;
+    let stringPassword = '';
+
+    //генерация случайного пароля
+    if (document.querySelector('#randomPassword').checked) {
+        let stringSymbols = 'abcdefghijklmnopqrstuvwxyz';
+        if (document.querySelector('#upperCase').checked) stringSymbols += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        if (document.querySelector('#numbers').checked) stringSymbols += '1234567890';
+        if (document.querySelector('#specSymbols').checked) stringSymbols += ` !"#$%&'()*+,-./:;<=>?@[\\]^_\`{|}~`;
+        let count = Number(document.querySelector('#passwordLength').value);
+        console.log("Максимальное количество символов---", count);
+        for (let i = 0; i < count; i += 1) {
+            let random = Math.round(Math.random() * stringSymbols.length);
+            console.log(random);
+            stringPassword += stringSymbols[random];
+        };
+    }
+    else {
+        stringPassword = document.getElementById('popUpPass').value;
+    };
+    
+    console.log("Сгенерированный пароль---", stringPassword);
+
     let response = await fetch('/newPass', 
     {
         method: 'POST', 
